@@ -270,6 +270,8 @@ class B : public A
     ```c++
     class A
     {
+    ```
+
   		virtual A* func(int num){}
   	}
   	class B : public A
@@ -451,7 +453,7 @@ m_a.SetCallBack(boost::bind(&B::OnCallBack, this, _1));
 
   ​	但是如果静态成员函数通过引用一个对象，是可以直接访问成员的，也体现了它成员函数的特权，示例如下：
 
-  ```C++
+  ```c++
 class A
   {
   private:
@@ -467,6 +469,8 @@ class A
   	}
   }
   ```
+  
+  
 
 
 
