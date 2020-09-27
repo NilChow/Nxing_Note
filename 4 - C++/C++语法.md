@@ -440,7 +440,7 @@ m_a.SetCallBack(boost::bind(&B::OnCallBack, this, _1));
   ​	调用示例：
 
   ```c++
-// 类名::函数名(参数)
+  //类名::函数名(参数)
   class student
   {
   	static std::string GetOccupation(){return "student";}
