@@ -270,15 +270,15 @@ class B : public A
     ```c++
     class A
     {
+    	virtual A* func(int num){}
+    }
+    class B : public A
+    {
+    	virtual B* func(int num){}
+    }
     ```
-
-  		virtual A* func(int num){}
-  	}
-  	class B : public A
-  	{
-  		virtual B* func(int num){}
-  	}
-  	```
+    
+    
 
   
 
