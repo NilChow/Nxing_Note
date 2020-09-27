@@ -440,7 +440,7 @@ m_a.SetCallBack(boost::bind(&B::OnCallBack, this, _1));
   ​	调用示例：
 
   ```c++
-//类名::函数名(参数);
+// 类名::函数名(参数)
   class student
   {
   	static std::string GetOccupation(){return "student";}
@@ -449,9 +449,9 @@ m_a.SetCallBack(boost::bind(&B::OnCallBack, this, _1));
   std::string occupation = student::GetOccupation();
   ```
   
-  ​	静态成员函数不可以访问非静态成员变量，因为静态成员函数不属于任何一个类对象，没有this指针，而非静态成员必须随着类对象的产生而产生，所以不可以访问。
+  ​	静态成员函数不可以防伪非静态成员变量，因为静态成员函数不属于任何一个类对象，没有this指针，而非静态成员必须随着类对象的产生而产生，所以不可以访问。
 
-  ​	但是如果静态成员函数通过引用一个对象，是可以直接访问成员的，也体现了它成员函数的特权，示例如下：
+  ​	但如果静态成员函数通过引用一个对象，是可以直接访问成员的，也体现了它成员函数的特权，示例如下：
 
   ```c++
 class A
@@ -461,18 +461,16 @@ class A
   public:
   	static void func()
   	{
-  		m_i = 666;		//错误，这个等价于this->m_i = 666, 而静态函数没有this
+  		m_i = 666;		//错误，这个等价于this->m_i = 666，而静态函数没有this
   	}
   	static void func(A& a)
   	{
-  		a.m_i = 666;	//正确
+  		a.m_i = 666;    //正确
   	}
   }
   ```
   
   
-
-
 
 * **静态全局变量**
 
