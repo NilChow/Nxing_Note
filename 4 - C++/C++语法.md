@@ -623,13 +623,287 @@ A a = "string";	//编译报错，因为explicit关键词禁止了经过转换构
 ​		模板是泛型编程的基础，泛型编程即以一种独立于任何特定类型的方式编写代码。
 
 * **函数模板**
+
+    定义形式：
+
+    ​	template<typeName T>
+
+    ​	*RetType* *FuncName*(param list...)
+
+    实例：
+
+    ```c++
+    template<typename T>
+    T const& max(T const&a, T const& b)
+    {
+        return a>b?a:b;
+    }
+    
+    int i = 20;
+    int j = 15;
+    std::cout << "max(i,j): " << max(i,j) << std::endl;
+    ```
+
+    
+
 * **类模板**
+
+    定义形式：
+
+    ​	template<class type>
+
+    ​	class *ClassName*{...};
+
+    实例：
+
+    ```c++
+    template<class T>
+    class Stack
+    {
+    public:
+        void push(T const&){...}
+        void pop(){...}
+        T top() const{...}
+        bool empty() const{return elems.empty();}
+    
+    private:
+        std::vector<T> elems;
+    }
+    
+    //...
+    
+    try{
+        Stack<int> stack_int;
+        Stack<std::string> stack_string;
+        
+        stack_int.push(7);
+        std::cout << stack_int.top() << std::endl;
+        
+        stack_string.push("hello");
+        std::cout << stack_string.top() << std::endl;
+    }catch(exception const& ex){
+        std::cerr << "Exception: " << ex.what() << std::endl;
+        return -1;
+    }
+    ```
+
+    
+
 * **函数模板 -- 参数是函数指针**
+
+    定义函数模板：
+
+    ```c++
+    // _Condi是一个自定义的类
+    template<class _Condi, class _Predicate>
+    void Wait(_Condi _condi, _Predicate _pred, int mode)
+    {
+    	bool flag = false;
+    	while(!flag)
+    	{
+    		if(mode == 1)
+    		{
+    			bool condi = _condi->Condi();
+    			flag = _pred(condi);
+    		}
+    		else if (mode == 2)
+    		{
+    			int point = _condi->Point();
+    			flag = _pred(point);
+    		}
+    		Sleep(1);
+    	}
+    	_condi->Reset();
+    }
+    ```
+
+    定义要传递的函数：
+
+    ```c++
+    bool Pred1(bool condi)
+    {
+    	return condi;
+    }
+    bool Pred2(int point)
+    {
+    	return point > 5;
+    }
+    ```
+
+    定义Condi类：
+
+    ```C++
+    class MyCondi
+    {
+    public:
+        MyCondi(){}
+    
+        void SetCondi(bool flag)
+        {
+            std::lock_guard<std::shared_mutex> lk(m_mux);
+            m_condi = flag;
+        }
+        bool Condi(){return m_condi;}
+    
+        void PointInc()
+        {
+            std::lock_guard<std::shared_mutex> lk(m_mux);
+            m_point++;
+        }
+        int Point(){return m_point;}
+    
+        void Reset() {m_point=0; m_condi=false;}
+    
+    private:
+        template<class _Predicate>
+        void wait(_Predicate _Pred)
+        {
+            while(!_Pred())
+                Sleep(1);
+        }
+    
+    public:
+        void Wait1()
+        {
+    		//wait([this]{return Pred1(this->m_condi);});
+            wait( [this]{return (this->m_condi);} );
+            m_condi = false;
+        }
+    
+        void Wait2()
+        {
+            wait([this]{return Pred2(this->m_point);});
+            m_point = 0;
+        }
+    
+    private:
+        bool m_condi = false;
+        int m_point = 0;
+        std::shared_mutex  m_mux;
+    };
+    ```
+
+    使用：
+
+    ```c++
+    MyCondi* condi = new MyCondi();
+    
+    void WaitThread()
+    {
+        while(true)
+        {
+            std::cout << "[Waiting...]" << std::endl;
+            condi->Wait1();
+    //        condi->Wait2();
+    //        Wait(condi, Pred1, 1);
+    //        Wait(condi, Pred2, 2);
+            std::cout << "[Wait Success!]" << std::endl;
+            std::cout << "==========================" << std::endl;
+        }
+    }
+    
+    void GrowThread()
+    {
+        static int count = 0;
+        while(true)
+        {
+            ////////// [1] //////////
+            Sleep(1000);
+            count ++;
+            std::cout << "[Growing...]" << std::endl;
+            if(count >= 6)
+            {
+                condi->SetCondi(true);
+                count = 0;
+            }
+    
+            ////////// [2] //////////
+    //        Sleep(1000);
+    //        std::cout << "[Growing...]" << std::endl;
+    //        condi->PointInc();
+        }
+    }
+    ```
+
+    
+
 * **函数模板 -- 参数是lambda表达式**
+
+    写函数模板：
+
+    ```C++
+    template<class _Predicate>
+    void wait(_Predicate _Pred)
+    {
+    	while(!_Pred())
+    		Sleep(1);
+    }
+    ```
+
+    使用：
+
+    ```C++
+    wait([this]{return (this->m_condi);});
+    ```
 
 
 
 ### 7. extern
+
+*   在变量的声明和定义中
+
+    ​	C++语言支持分离式编译机制，为了将程序分为多个文件，需要在文件中共享代码，比如一个文件中的代码可能需要用到另一个文件中定义的变量。
+
+    ​	为了支持分离式编译，C++允许将声明和定义分离开来，变量的声明规定了变量的类型和名字，即使一个名字为程序所知，一个文件如果想使用别处定义的名字则必须包含对那个名字的声明。
+
+    ```c++
+    extern int i;	// 声明i，不定义
+    int i;			// 声明并定义i
+    ```
+
+    ​	我们也可以给extern关键字标记的变量赋值一个初始值，但这样就不是声明而是定义了，extern的作用将被抵消。
+
+    ```c++
+    extern int v = 2;
+    int v = 2;			// 这两个语句的效果完全一样，都是v的定义
+    ```
+
+    声明和定义的区别：
+
+    -- 声明使得名字被程序所知
+
+    -- 定义负责创建与名字关联的实体
+
+    -- 变量可以被声明多次，但只能被定义一次
+
+    
+
+*   在多个文件中共享const
+
+    ​	默认情况下，一个const对象仅在本文件内有效，如果多个文件中出现了同名的const变量时，其实是在多个文件中分别定义了独立的同名的变量。
+
+    ​	有时我们希望在一个文件里面声明的const对象，被多个文件使用，方法是对于const变量不管是声明还是定义都添加**extern**关键字，这样只需要定义一次就可以了
+
+    
+
+*   模板的控制实例化
+
+    
+
+*   extern "C"
+
+    这种写法是在告诉编译器，按照C语言编译器的方式生成函数调用名。
+
+    
+
+*   总结
+
+    从上面总结，extern的作用总的来说无非就是两种：
+
+    *   用extern修饰目标，为了文件共享。被extern修饰的目标，要么是其它文件中已经定义好的，要么是让声明目标让其它文件使用。
+    *   extern "C" 函数声明，告诉编译器按照C语言编译器的方式生成函数调用名。
+
+
 
 
 
@@ -643,9 +917,60 @@ A a = "string";	//编译报错，因为explicit关键词禁止了经过转换构
 
 ## 十二、类型转换
 
+一般情况下，数据的类型的转换通常是由编译器自动进行的，不需要人工干预，所以被称为隐式类型转换。但如果程序要求一定要将某一类型的数据转换为另外一种类型，则可以利用强制类型转换运算符进行转化，这种转换称为显示转换。
+
+
+
 ### 1. 隐式类型转换
 
+##### 概念
+
+值不需要用户干预，编译器私下进行的类型转换行为。很多时候用户可能都不知道进行了哪些转换。
+
+
+
+##### 基本类型的隐式转换
+
+char -> short -> int -> unsigned -> long -> float -> doule
+
+发生条件：
+
+	* 混合类型的算术运算表达式
+	* 不同类型的赋值操作
+	* 函数参数传值
+	* 函数返回值
+
+
+
+##### 构造函数的隐式转换
+
+如果一个**构造函数只有一个参数**，那么它除了是个构造器之外，**还是一个默认隐式类型转换符**。
+
+```c++
+class A
+{
+	A(std::string str){...}
+};
+A a = "string";		// 这里会发生隐式类型转换
+
+class B
+{
+	explicit B(std::string str){...}
+};
+B b = "string";		// 这里会报错，因为explicit禁止了经过转换构造函数进行的隐式转换
+```
+
+
+
 ### 2. 显示类型转换
+
+##### static_cast
+
+##### dynamic_cast
+
+##### const_cast
+
+##### reinterpret_cast
 
 
 
@@ -656,6 +981,25 @@ A a = "string";	//编译报错，因为explicit关键词禁止了经过转换构
 ## 十四、补充介绍
 
 ### 1. RTTI问题
+
+##### 简介
+
+RTTI全程 RunTime Type Identification，这个机制是用来记录类型信息的，typeid或dynamic_cast等操作符会用到这些信息。
+
+##### 问题原因
+
+当代码中dynamic_cast或者typeid等需要typeinfo的操作符时，会要求有RTTI。而通常编译C++代码的时候，默认是自带RTTI机制的，所以一般情况下我们不用去管这个问题。
+
+但是当工程中导入的第三方库是由ndk编译生成的时候，由于ndk默认并不带有RTTI机制，所以在库中用到了dynamic_cast操作符时，就会报如下的错：
+
+​	<font color=red>**undefined reference to 'typeinfo for xxx'**</font>
+
+**说明**：如果你的项目中，调用的库中的类或者函数没有涉及到dynamic_cast或typeid的这些代码块时，也能顺利编译通过，但这是一个潜在的问题，如果以后添加了相关的代码，还是会报错。
+
+##### 注意事项
+
+*   导入的库和工程对于是否带RTTI要保持一致，如果混合了，同样编译不过
+*   如果代码中对库的类使用了dynamic_cast或typeid等需要typeinfo的操作时，则必须带RTTI
 
 
 

@@ -134,6 +134,19 @@ db.ChatRecord.find({$or:[{"MsgKey":{"$regex":"^Iverson"},"Side":2},{"MsgKey":{"$
 *   等于：直接用 ":"即可
 *   模糊查询：用正则表达式 $regex，像上述例子一样
 
+##### 模糊查询
+
+```shell
+# 查询MsgKey中包含"son-ko"的数据
+db.ChatRecord.find({MsgKey:/son-ko/}).pretty()
+
+# 查询MsgKey中以"Iver"开头的数据
+db.ChatRecord.find({MsgKey:/^Iver/}).pretty()
+
+# 查询MsgKey中以"be"结尾的数据
+db.ChatRecord.find({MsgKey:/be$/}).pretty()
+```
+
 
 
 ### 更新数据
@@ -235,3 +248,83 @@ db.runCommand({"convertToCapped":"collectionName",size:10000})
 *   对固定集合进行插入速度极快
 *   按照插入顺序的查询输出速度极快
 *   能够在插入最新数据时，淘汰最早的数据
+
+
+
+
+
+# 集群搭建
+
+### 主从模式
+
+##### 主数据库配置
+
+dbpath = /data/db/master													# 数据库文件存储位置
+
+logpath = /data/mongodb/logs/master/mongodb.log	 # log文件存储文职
+
+logappend = true		# 以追加的方式写日志
+
+fork = true					# 是否以守护进程方式运行
+
+port = 27017				# 端口号
+
+auth = true				   # 是否启用认证(生产环境最好加上auth认证)
+
+keyFile = /usr/loca/mongodb/mongodb-keyfile				#集群私钥的完整路径(支队Replica Set架构有效，auth为false时不需配置此项)
+
+diaglog = 0					# diaglog选项， 0=off, 1=W, 2=R, 3=both, 7=W+some reads
+
+master = true			   # 设置主从
+
+oplogSize = 2048		 # 设置oplog的大小
+
+
+
+##### 从数据库配置
+
+dbpath = /data/db/master													# 数据库文件存储位置
+
+logpath = /data/mongodb/logs/master/mongodb.log	 # log文件存储文职
+
+logappend = true		# 以追加的方式写日志
+
+fork = true					# 是否以守护进程方式运行
+
+port = 27017				# 端口号
+
+auth = true				   # 是否启用认证(生产环境最好加上auth认证)
+
+keyFile = /usr/loca/mongodb/mongodb-keyfile				#集群私钥的完整路径(支队Replica Set架构有效，auth为false时不需配置此项)
+
+diaglog = 0									# diaglog选项， 0=off, 1=W, 2=R, 3=both, 7=W+some reads
+
+master = false   		   				# 设置主从
+
+source = 192.168.0.1:27017	  # 用于从节点，指定主节点
+
+
+
+##### 以auth认证的方式启动服务
+
+*   在主从服务器配置私钥
+
+    命令：$ openssl rand -base64 745 > mongodb-keyfile						// 在一台服务器上生成私钥
+
+    命令：$ chmod 600 mongodb-keyfile													 // 修改私钥的权限为可读可写
+
+    命令：$ scp mongodb-heyfile root@*ipaddr*:/usr/local/mongodb/	 // 将私钥路径拷贝到其余的服务器上
+
+*   在配置文件中配置私钥路径
+
+*   启动服务
+
+
+
+##### 补充说明
+
+*   启动slave后，slave会自动进行初始化resync同步
+*   当slave落后太多的时候，也需要进行resync同步
+*   resync会在master上加一个全局的锁，阻塞其它的读写操作，直到resync结束
+*   也可以手动进行resync：db.runCommand({"resync":1})
+
