@@ -105,6 +105,17 @@ db.collectionName.insert(document)
 
 
 
+### 删除数据
+
+```shell
+# 删除所有数据
+db.collectionName.remove({})
+# 删除MsgID为13的数据
+db.collectionName.remove({"MsgID" : 13})
+```
+
+
+
 ### 查询数据
 
 ```shell
