@@ -182,3 +182,227 @@ vec.shrink_to_fit()
 
 ### multimap
 
+
+
+
+
+
+
+
+
+# bitset
+
+### 简介
+
+bitset可以用来方便地管理一系列的bit位而不用程序员自己来写代码。除了可以访问指定位置的bit位外，还可以把它们作为一个整数来进行某些统计。
+
+
+
+### 构造
+
+```c++
+// 默认构造
+std::bitset<BIT_SIZE> myset;
+std::bitset<4> myset;				// 0000
+// 用字符串构造
+std::bitset<10> set1("100101");		// 0000100101
+// 用十进制数构造
+std::bitset<8> set2(12);			// 00001100
+// 用八进制构造
+std::bitset<32> set3(012);			// 00000000 00000000 00000000 00001010
+// 用十六进制构造
+std::bitset<32> set6(0xFFFF);		// 00000000 00000000 11111111 11111111
+```
+
+**特别注意**：
+
+构造时，如果参数的位数大于了bitset的size时
+
+*   若为数字，取后面size大小的部分
+*   若为字符串，取前面size大小的部分
+
+
+
+### 访问、修改元素
+
+```C++
+myset[FIELDKEY_LASTSETTLE] = 1;		// 可以通过下标访问元素，也可以通过下标修改下标位置的值(不会对下标越界做检查，有风险)
+	
+myset.set(FIELDKEY_LASTCLOSE);		// 只有一个参数时，将参数位置的值置为1
+myset.set(FIELDKEY_LASTCLOSE, 0);	// 有两个参数时，将参数位置的值置为 第二个参数的值(0或者1)
+myset.set();						// 没有参数时，将bitset每一位都置为1
+	
+myset.reset(FIELDKEY_LASTCLOSE);	// 有一个参数时，将参数位置的值置为0 (不接受两个参数)
+myset.reset();						// 没有参数时，将bitset每一位都置为0
+	
+myset.flip();						// 没有参数时，将bitset每一个位的值取反
+myset.flip(FIELDKEY_LASTSETTLE);	// 有一个参数时，将参数位置的值取反
+	
+myset.test(FIELDKEY_LASTSETTLE);	// 检查参数位置的值为1还是0, 1返回true，0返回false
+```
+
+
+
+### 相关信息
+
+```c++
+size_t count = myset.count();		// 0---返回当前值为1的bit的个数
+size_t size = myset.size();			// 41---返回当前bitsize的大小
+	
+bool flag = myset.any();			// 检查bitset中是否有1，,是返回true，否返回false
+flag = myset.none();				// 检查bitset中是否没有1，是返回true，否返回false
+flag = myset.all();					// 检查bitset中是否全为1，是返回true，否返回false
+```
+
+
+
+### 二进制操作
+
+```c++
+set5 ^= set6;				// set5对set6按位 异或 后赋值给set5
+set5 &= set6;				// set5对set6按位  与   后赋值给set5
+set5 |= set6;				// set5对set6按位  或   后赋值给set5
+	
+set5^set6;					// 按位 异或，不赋值
+set5&set6;					// 按位  与  ，不赋值
+set5|set6;					// 按位  或  ，不赋值
+	
+set5 <<= 2;					// 左移两位，低位补0，有自身赋值
+set6 >>= 1;					// 右移一位，高位补0，有自身赋值
+
+set5>>2;					// 右移两位，不赋值
+set6<<1;					// 左移一位，不赋值
+	
+flag = (set5 == set6) ? true : false;		// 可以用 == 或 != 操作符来判断
+```
+
+
+
+### 类型转换
+
+```c++
+std::string str = myset.to_string();			// 将bitset转换成string类型
+unsigned long a = myset.to_ulong();				// 将bitset转换成unsigned long类型
+unsigned long long b = myset.to_ullong();		// 将bitset转换成unsigned long long类型
+```
+
+
+
+
+
+
+
+
+
+
+
+# 线程相关
+
+### 线程 -- thread
+
+
+
+
+
+
+
+### 锁 -- mutex
+
+
+
+
+
+
+
+### 锁卫士 -- lock_guard
+
+
+
+
+
+
+
+### 条件变量 -- condition_variable
+
+##### 简介
+
+std::condition_variable是条件变量，当它的对象在**调用wait函数后**，它会用std::unique_lock(通过std::mutex)来**锁住当前线程**，当前线程会被阻塞，直到另外一个线程在相同的std::condition_variable对象上**调用notification函数来唤醒当前线程**。
+
+##### wait函数介绍
+
+函数原型：
+
+```c++
+template<class _Predicate>
+void wait(unique_lock<mutex>& _Lck, _Predicate _Pred)
+{	// wait for signal and test predicate
+	while (!_Pred())
+	wait(_Lck);
+}
+```
+
+第一个参数 _Lck:
+
+*   如果是unique_lock对象，用它里面的mutex来阻塞线程
+*   如果想要其它的lockable类型，则需要使用condition_variable_any类
+
+第二个参数 _Pred:
+
+*   是一个判断条件
+*   判断触发条件是否真的达到，若条件为false，则还是会继续阻塞
+*   可以传递一个函数指针，也可以传递一个lambda表达式
+
+
+
+例子：
+
+```c++
+// 传递函数指针
+bool IsEnough()
+{
+	std::cout << "To Check" << std::endl;
+    return point > 5 ? true:false;
+}
+
+// 传递lambda表达式
+std::unique_lock<std::mutex> lk(mux);
+condi.wait(lk, [points]{return points>5;});
+```
+
+
+
+##### wait_for函数介绍
+
+wait_for函数比wait函数多了一个时间参数，可以指定等待的时间，当时间到了(超时)了，即使没有收到notification，也会结束等待，返回
+
+返回值：
+
+*   true：当收到通知，且判定条件_Pred为true时，返回true
+*   false：当因超时，或判定条件_Pred为false时，返回false
+
+
+
+用法例子：
+
+```c++
+#include <chrono>
+using namespace std::chrono_literals;
+
+std::unique_lock<std::mutex> lk(mux);
+bool res = condi.wait_for(lk, 10000ms, IsEnough);	// 判断返回原因
+```
+
+
+
+##### notification函数介绍
+
+notification有两个可以通知的函数，notify_one和notify_all：
+
+*   notify_one：
+*   notify_all：唤醒所有的等待线程
+
+
+
+##### 用法流程
+
+![](..\0 - src\4\condition_variable.png)
